@@ -7,6 +7,7 @@ import google.generativeai as genai
 import requests
 import time
 from urllib.parse import quote
+from ui_components import render_footer
 
 # 🎯 페이지 초기 설정
 st.set_page_config(
