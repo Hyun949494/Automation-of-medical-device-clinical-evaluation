@@ -1,5 +1,5 @@
-streamlit==1.28.0
-pandas==2.0.3
-google-generativeai==0.3.1
-pdfplumber==0.9.0
-openpyxl==3.1.2
+streamlit
+pandas
+google-generativeai
+pdfplumber
+openpyxl
