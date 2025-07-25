@@ -3,7 +3,14 @@
 import streamlit as st
 import pandas as pd
 import io
-import google.generativeai as genai
+
+# google.generativeai 안전하게 import
+try:
+    import google.generativeai as genai
+except ImportError:
+    st.error("❌ google-generativeai 패키지를 설치할 수 없습니다.")
+    st.info("💡 관리자에게 문의하거나 로컬에서 실행해주세요.")
+    st.stop()
 
 # 내부 모듈들
 from config import setup_page
