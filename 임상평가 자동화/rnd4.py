@@ -7,5 +7,5 @@ TEAM_CONFIG = {
     "email": "dlsrhdvksakr@gmail.com",
     "api_key": "00907d89b5e4ed26e889b2d8552c0ea1ae09",
     "product": "Transcatheter Pulmonary Valve",
-    "gemini_api_key": "AIzaSyBvG_sCnN05q4V6C7qR46nuVPwA5tLgkYg"
+    "gemini_api_key": ""
 }
