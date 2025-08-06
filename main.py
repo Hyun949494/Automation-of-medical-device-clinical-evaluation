@@ -7,15 +7,147 @@ import google.generativeai as genai
 import requests
 import time
 from urllib.parse import quote
-from ui_components import render_footer
+
+# 🏗️ RND 팀 설정 데이터 (기존 rnd4.py에서 가져옴)
+TEAM_CONFIGS = {
+    "RND4": {
+        "name": "RND4 팀 - Pulmonary Valve",
+        "P": '"pulmonary valve" OR "pulmonary valve atresia" OR "pulmonary valve regurgitation" OR "right ventricular outflow tract" OR "RVOT" OR "right ventricle to pulmonary artery" OR "dysfunctional RVOT" OR "tetralogy of fallot"',
+        "I": '"transcatheter pulmonary valve" OR "percutaneous pulmonary valve" OR "percutaneous pulmonary valve implantation" OR "transcatheter pulmonary valve implantation" OR TPVI OR PPVI',
+        "C": '(("Melody" OR "SAPIEN" OR "P Valve" OR "Harmony" OR "Alterra") AND ("Medtronic" OR "Edwards" OR "Medtech")) NOT ("open heart surgery" OR "surgical pulmonary valve implantation" OR "surgical valve replacement")',
+        "O": '"procedure-related mortality" OR "procedural success" OR "device-related serious adverse events" OR "procedure-related complications" OR "hemodynamic function" OR "NYHA functional class" OR "pulmonary regurgitation severity" OR "mean RVOT gradient" OR "freedom from reintervention" OR "freedom from reoperation" OR "stent fracture" OR "endocarditis"',
+        "email": "dlsrhdvksakr@gmail.com",
+        "api_key": "00907d89b5e4ed26e889b2d8552c0ea1ae09",
+        "product": "Transcatheter Pulmonary Valve",
+        "gemini_api_key": ""
+    },
+    "RND35": {
+        "name": "RND35 팀 - 사용자 설정",  # 이 부분은 실제 RND35 데이터로 교체
+        "P": "",
+        "I": "",
+        "C": "",
+        "O": "",
+        "email": "",
+        "api_key": "",
+        "product": "",
+        "gemini_api_key": ""
+    },
+    "커스텀": {
+        "name": "커스텀 설정",
+        "P": "",
+        "I": "",
+        "C": "",
+        "O": "",
+        "email": "",
+        "api_key": "",
+        "product": "",
+        "gemini_api_key": ""
+    }
+}
+
+def render_footer():
+    """푸터 렌더링"""
+    st.markdown("---")
+    st.markdown("🏥 **임상평가 자동화 도구** | 🤖 Powered by Gemini AI")
 
 # 🎯 페이지 초기 설정
 st.set_page_config(
     page_title="🏥 임상평가 자동화",
     page_icon="🏥",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded"  # 사이드바 기본 열림
 )
+
+# 🔧 세션 상태 초기화
+if 'selected_team' not in st.session_state:
+    st.session_state.selected_team = "RND4"  # 기본값
+
+# 🔧 사이드바: 팀 설정
+with st.sidebar:
+    st.markdown("## 🏥 팀 설정")
+    
+    # 팀 선택
+    team_options = list(TEAM_CONFIGS.keys())
+    selected_team = st.selectbox(
+        "🔍 연구팀 선택",
+        team_options,
+        index=team_options.index(st.session_state.selected_team),
+        key="team_selector"
+    )
+    
+    # 팀이 변경되었을 때 자동으로 설정값 업데이트
+    if selected_team != st.session_state.selected_team:
+        st.session_state.selected_team = selected_team
+        st.rerun()  # 페이지 새로고침으로 변경사항 반영
+    
+    # 선택된 팀 정보 표시
+    config = TEAM_CONFIGS[st.session_state.selected_team]
+    if st.session_state.selected_team != "커스텀":
+        st.markdown(f"""
+        <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 1rem; margin: 1rem 0; border-radius: 0 5px 5px 0;">
+            <strong>📋 {config['name']}</strong><br>
+            <small>🎯 제품: {config['product'] if config['product'] else '미설정'}</small>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # API 설정
+    st.markdown("### 🔑 API 설정")
+    
+    email_input = st.text_input(
+        "📧 NCBI 이메일",
+        value=config['email'],
+        key="sidebar_email"
+    )
+    
+    api_key_input = st.text_input(
+        "🔑 NCBI API 키",
+        value=config['api_key'],
+        type="password",
+        key="sidebar_api_key"
+    )
+    
+    gemini_key_input = st.text_input(
+        "🤖 Gemini API 키",
+        value=config['gemini_api_key'],
+        type="password",
+        key="sidebar_gemini_key"
+    )
+    
+    # API 설정 저장 버튼
+    if st.button("💾 설정 저장", use_container_width=True):
+        # 현재 선택된 팀의 설정 업데이트
+        TEAM_CONFIGS[st.session_state.selected_team]['email'] = email_input
+        TEAM_CONFIGS[st.session_state.selected_team]['api_key'] = api_key_input
+        TEAM_CONFIGS[st.session_state.selected_team]['gemini_api_key'] = gemini_key_input
+        st.success("✅ 설정이 저장되었습니다!")
+    
+    st.markdown("---")
+    
+    # 연결 상태 확인
+    st.markdown("### 🔍 연결 상태")
+    
+    # Gemini 연결 상태
+    if gemini_key_input:
+        try:
+            genai.configure(api_key=gemini_key_input)
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            response = model.generate_content("테스트")
+            if response and response.text:
+                st.success("🤖 Gemini AI 연결됨")
+            else:
+                st.error("❌ Gemini AI 오류")
+        except:
+            st.error("❌ Gemini API 키 오류")
+    else:
+        st.warning("⚠️ Gemini API 키 없음")
+    
+    # NCBI 연결 상태
+    if email_input:
+        st.success("📧 NCBI 이메일 설정됨")
+    else:
+        st.warning("⚠️ NCBI 이메일 없음")
 
 # 🎨 CSS 스타일
 st.markdown("""
@@ -53,7 +185,7 @@ def pubmed_search_all(query, email, retmax_per_call=100, api_key=None, mindate=N
     """PubMed에서 논문 검색"""
     base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
     search_url = f"{base_url}esearch.fcgi"
-    
+
     params = {
         'db': 'pubmed',
         'term': query,
@@ -61,22 +193,22 @@ def pubmed_search_all(query, email, retmax_per_call=100, api_key=None, mindate=N
         'retmode': 'json',
         'email': email
     }
-    
+
     if api_key:
         params['api_key'] = api_key
     if mindate:
         params['mindate'] = mindate
     if maxdate:
         params['maxdate'] = maxdate
-    
+
     try:
         response = requests.get(search_url, params=params)
         response.raise_for_status()
         data = response.json()
-        
+
         pmids = data.get('esearchresult', {}).get('idlist', [])
         return pmids[:retmax_per_call]
-    
+
     except Exception as e:
         st.error(f"PubMed 검색 오류: {e}")
         return []
@@ -85,31 +217,31 @@ def pubmed_details(pmids, email, api_key=None):
     """PMID 리스트로부터 논문 상세 정보 수집"""
     if not pmids:
         return []
-    
+
     base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
     fetch_url = f"{base_url}efetch.fcgi"
-    
+
     # PMID들을 쉼표로 연결
     id_string = ",".join(pmids)
-    
+
     params = {
         'db': 'pubmed',
         'id': id_string,
         'retmode': 'xml',
         'email': email
     }
-    
+
     if api_key:
         params['api_key'] = api_key
-    
+
     try:
         response = requests.get(fetch_url, params=params)
         response.raise_for_status()
-        
+
         # XML 파싱 (간단한 문자열 처리)
         xml_text = response.text
         articles = []
-        
+
         # 각 PMID에 대한 기본 정보 생성
         for pmid in pmids:
             articles.append({
@@ -121,9 +253,9 @@ def pubmed_details(pmids, email, api_key=None):
                 'Year': "2024",
                 'URL': f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
             })
-        
+
         return articles
-    
+
     except Exception as e:
         st.error(f"논문 상세 정보 수집 오류: {e}")
         return []
@@ -203,35 +335,47 @@ if 'df' not in st.session_state:
 # 📱 헤더
 st.markdown('<h1 class="main-header">🏥 임상평가 자동화 도구</h1>', unsafe_allow_html=True)
 
+# 선택된 팀 정보 표시 (메인 영역)
+current_config = TEAM_CONFIGS[st.session_state.selected_team]
+if st.session_state.selected_team != "커스텀":
+    st.markdown(f"""
+    <div class="success-box">
+        🔥 <strong>{current_config['name']}</strong>이 선택되었습니다.<br>
+        🎯 <strong>연구 제품:</strong> {current_config['product']}<br>
+        📧 <strong>이메일:</strong> {current_config['email'] if current_config['email'] else '미설정'}
+    </div>
+    """, unsafe_allow_html=True)
+
 # 📋 메인 탭 구성
 tab1, tab2, tab3 = st.tabs(["🔍 PubMed 검색", "🤖 AI 분석", "📊 MEDDEV 분석"])
 
-# ...existing code... (나머지 탭 코드는 동일하게 유지)
-
 # ===============================================
-# 🔍 탭 1: PubMed 검색
+# 🔍 탭 1: PubMed 검색 (RND 팀 자동 입력)
 # ===============================================
 with tab1:
     st.markdown("### 📝 PICO 입력")
-    
-    # PICO 입력 폼
+
+    # 선택된 팀의 설정 가져오기
+    selected_config = TEAM_CONFIGS[st.session_state.selected_team]
+
+    # PICO 입력 폼 (선택된 팀 데이터 자동 입력)
     col1, col2 = st.columns(2)
     with col1:
         P = st.text_input("👥 환자/문제 (Population)", 
-                          value=st.session_state.get('team_P', ''),
+                          value=selected_config['P'],
                           placeholder="예: 수술 후 통증 환자")
         I = st.text_input("💊 중재 (Intervention)", 
-                          value=st.session_state.get('team_I', ''),
+                          value=selected_config['I'],
                           placeholder="예: 경피 신경 자극 치료")
-    
+
     with col2:
         C = st.text_input("⚖️ 비교 (Comparison)", 
-                          value=st.session_state.get('team_C', ''),
+                          value=selected_config['C'],
                           placeholder="예: 진통제 투여")
         O = st.text_input("🎯 결과 (Outcome)", 
-                          value=st.session_state.get('team_O', ''),
+                          value=selected_config['O'],
                           placeholder="예: 통증 완화 정도")
-    
+
     # 검색 조합 선택
     st.markdown("### 🎯 검색 조합 선택")
     col1, col2, col3, col4 = st.columns(4)
@@ -243,30 +387,30 @@ with tab1:
         use_C = st.checkbox("✅ C 포함", value=False)
     with col4:
         use_O = st.checkbox("✅ O 포함", value=False)
-    
+
     # 선택된 조합 표시
     selected_components = []
     if use_P and P: selected_components.append("P")
     if use_I and I: selected_components.append("I") 
     if use_C and C: selected_components.append("C")
     if use_O and O: selected_components.append("O")
-    
+
     if selected_components:
         combo_display = " + ".join(selected_components)
         st.success(f"🔍 **선택된 조합**: {combo_display}")
-    
+
     # 검색 옵션
     st.markdown("### 🔧 검색 옵션")
     col1, col2 = st.columns(2)
     with col1:
         period = st.text_input("📅 검색 기간", placeholder="YYYY/MM/DD-YYYY/MM/DD")
-        email = st.text_input("📧 NCBI 이메일", value=st.session_state.get('team_email', ''))
+        email = st.text_input("📧 NCBI 이메일", value=selected_config['email'])
     with col2:
         api_key = st.text_input("🔑 NCBI API 키", 
-                               value=st.session_state.get('team_api_key', ''),
+                               value=selected_config['api_key'],
                                type="password")
         per_call = st.number_input("📊 배치 크기", min_value=1, max_value=1000, value=100)
-    
+
     # 검색 실행 버튼
     if st.button("🚀 검색 실행", use_container_width=True):
         if not selected_components:
@@ -278,9 +422,9 @@ with tab1:
             if use_I and I: query_components.append(I)
             if use_C and C: query_components.append(C)
             if use_O and O: query_components.append(O)
-            
+
             query = build_query(query_components)
-            
+
             # 필터 추가
             filter_str = (
                 ' AND full text[sb]'
@@ -288,32 +432,32 @@ with tab1:
                 ' OR review[pt] OR systematic review[pt])'
             )
             final_query = query + filter_str
-            
+
             st.info(f"🔍 **검색 쿼리**: {final_query}")
-            
+
             # 날짜 파싱
             mindate = maxdate = None
             if period and '-' in period:
                 mindate, maxdate = period.split('-', 1)
-            
+
             try:
                 # PMID 검색
                 with st.spinner("🔍 PMID 수집 중..."):
                     pmids = pubmed_search_all(final_query, email, retmax_per_call=per_call,
                                               api_key=api_key or None, mindate=mindate, maxdate=maxdate)
                 st.success(f"✅ {len(pmids)}개의 논문을 찾았습니다!")
-                
+
                 # 상세 정보 수집
                 with st.spinner("📄 논문 상세 정보 수집 중..."):
                     details = pubmed_details(pmids, email, api_key or None)
-                
+
                 # 결과 표시
                 df = pd.DataFrame(details)
                 st.session_state.df = df
-                
+
                 st.markdown(f"### 📚 검색 결과 ({len(details)}개)")
                 st.dataframe(df, use_container_width=True)
-                
+
                 # 엑셀 다운로드
                 excel_bytes = io.BytesIO()
                 df.to_excel(excel_bytes, index=False, engine='openpyxl')
@@ -324,7 +468,7 @@ with tab1:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
-                
+
             except Exception as e:
                 st.error(f"❌ 검색 오류: {e}")
 
@@ -333,40 +477,42 @@ with tab1:
 # ===============================================
 with tab2:
     st.markdown("### 🤖 Gemini AI 분석")
-    
+
+    # 선택된 팀 설정 사용
+    current_team_config = TEAM_CONFIGS[st.session_state.selected_team]
+
     # API 키 및 제품명 입력
     col1, col2 = st.columns(2)
     with col1:
         gemini_api_key = st.text_input("🔑 Gemini API 키", 
-                                      value=st.session_state.get('team_gemini_api_key', ''),
+                                      value=current_team_config['gemini_api_key'],
                                       type="password", key="gemini_api_key")
     with col2:
         product_name = st.text_input("🏷️ 제품명", 
-                                    value=st.session_state.get('team_product', ''),
+                                    value=current_team_config['product'],
                                     key="product_name")
-    
+
     # 맞춤 프롬프트
     user_prompt = st.text_area(
         "💬 맞춤 프롬프트",
         value="논문 제목: {title}\n초록: {abstract}\n\n이 논문이 '{product}'와 관련 있다고 판단한 이유를 한국어로 간단히 설명해주세요.",
         height=100
     )
-    
+
     # Gemini 연결 상태 확인
     gemini_status = False
-    gemini_api_key_val = st.session_state.get('gemini_api_key', '')
-    
-    if gemini_api_key_val:
+
+    if gemini_api_key:
         try:
-            genai.configure(api_key=gemini_api_key_val)
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
             response = model.generate_content("안녕하세요")
             if response and response.text:
                 gemini_status = True
                 st.success("✅ Gemini API 연결 성공!")
         except Exception as e:
             st.error(f"❌ Gemini API 오류: {e}")
-    
+
     # AI 분석 실행
     if st.button("🤖 AI 분석 실행", use_container_width=True):
         if st.session_state.df is None:
@@ -377,24 +523,24 @@ with tab2:
             st.error("❌ 제품명을 입력하세요!")
         else:
             # AI 분석 실행
-            genai.configure(api_key=gemini_api_key_val)
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
             df = st.session_state.df.copy()
-            
+
             progress_bar = st.progress(0)
             status_text = st.empty()
-            
+
             with st.spinner("🤖 AI 분석 중..."):
                 for idx, row in df.iterrows():
                     progress = (idx + 1) / len(df)
                     progress_bar.progress(progress)
                     status_text.text(f"처리 중... {idx + 1}/{len(df)}")
-                    
+
                     # 제품명이 제목이나 초록에 포함되는지 확인
                     if (product_name.lower() in str(row['Title']).lower() or 
                         product_name.lower() in str(row['Abstract']).lower()):
                         df.at[idx, 'Select'] = 'Y'
-                        
+
                         # Gemini로 이유 생성
                         prompt = user_prompt.format(
                             title=row['Title'][:300],
@@ -409,19 +555,19 @@ with tab2:
                     else:
                         df.at[idx, 'Select'] = ''
                         df.at[idx, 'Reason'] = ''
-            
+
             progress_bar.empty()
             status_text.empty()
-            
+
             # 결과 저장 및 표시
             st.session_state.df = df
             st.success("✅ AI 분석 완료!")
-            
+
             selected_count = len(df[df['Select'] == 'Y'])
             st.info(f"📊 전체 {len(df)}개 중 {selected_count}개가 관련 있음으로 분석")
-            
+
             st.dataframe(df, use_container_width=True)
-            
+
             # 결과 다운로드
             excel_bytes = io.BytesIO()
             df.to_excel(excel_bytes, index=False, engine='openpyxl')
@@ -434,35 +580,35 @@ with tab2:
             )
 
 # ===============================================
-# 📊 탭 3: MEDDEV 분석 (엑셀 지원)
+# 📊 탭 3: MEDDEV 분석 (기존 코드 그대로 유지)
 # ===============================================
 with tab3:
-    
+
     # 🔥 엑셀 함수 (탭3 안에 위치) - 병합 셀 오류 수정
     def create_excel_meddev_analysis(response_text, pdf_text):
         """MEDDEV 분석 결과를 엑셀로 변환"""
         from openpyxl import Workbook
         from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
         from openpyxl.utils import get_column_letter
-        
+
         wb = Workbook()
-        
+
         # 스타일 정의
         header_font = Font(bold=True, size=12, color="FFFFFF")
         header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
         title_font = Font(bold=True, size=14)
         border = Border(left=Side(style='thin'), right=Side(style='thin'), 
                        top=Side(style='thin'), bottom=Side(style='thin'))
-        
+
         # 워크시트 1: 요약 정보
         ws_summary = wb.active
         ws_summary.title = "Summary"
-        
+
         # 제목
         ws_summary['A1'] = "MEDDEV 2.7/1 Rev. 4 Analysis Report"
         ws_summary['A1'].font = Font(bold=True, size=16)
         ws_summary.merge_cells('A1:D1')
-        
+
         # 분석 정보
         ws_summary['A3'] = "Analysis Date:"
         ws_summary['B3'] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')
@@ -470,13 +616,13 @@ with tab3:
         ws_summary['B4'] = f"{len(pdf_text)} characters"
         ws_summary['A5'] = "Generated by:"
         ws_summary['B5'] = "Gemini AI MEDDEV Analysis System"
-        
+
         # 논문 정보 파싱
         paper_info = {}
         device_info = {}
-        
+
         lines = response_text.split('\n')
-        
+
         for line in lines:
             line = line.strip()
             if "Title:" in line:
@@ -493,33 +639,33 @@ with tab3:
                 device_info['Device Name'] = line.split('Device Name:', 1)[1].strip()
             elif "Company:" in line:
                 device_info['Company'] = line.split('Company:', 1)[1].strip()
-        
+
         # 논문 정보 표시
         row = 7
         ws_summary[f'A{row}'] = "PAPER INFORMATION"
         ws_summary[f'A{row}'].font = title_font
         row += 1
-        
+
         for key, value in paper_info.items():
             ws_summary[f'A{row}'] = key + ":"
             ws_summary[f'B{row}'] = value
             row += 1
-        
+
         row += 1
         ws_summary[f'A{row}'] = "DEVICE INFORMATION"
         ws_summary[f'A{row}'].font = title_font
         row += 1
-        
+
         for key, value in device_info.items():
             ws_summary[f'A{row}'] = key + ":"
             ws_summary[f'B{row}'] = value
             row += 1
-        
+
         # 워크시트 2: Methodological Appraisal
         ws_method = wb.create_sheet("Methodological")
         ws_method['A1'] = "STEP 2: Methodological Appraisal"
         ws_method['A1'].font = title_font
-        
+
         # 표 헤더
         headers = ["Aspects covered", "Weight", "Score", "Remarks"]
         for col, header in enumerate(headers, 1):
@@ -527,11 +673,11 @@ with tab3:
             cell.font = header_font
             cell.fill = header_fill
             cell.border = border
-        
+
         # 표 데이터 파싱 및 입력
         method_data = []
         in_method_table = False
-        
+
         for line in lines:
             if "METHODOLOGICAL_TABLE_START" in line:
                 in_method_table = True
@@ -543,7 +689,7 @@ with tab3:
                 parts = [part.strip() for part in line.split('|')]
                 if len(parts) >= 4:
                     method_data.append(parts)
-        
+
         # 데이터 입력
         for row_idx, row_data in enumerate(method_data, 4):
             for col_idx, cell_data in enumerate(row_data[:4], 1):
@@ -552,23 +698,23 @@ with tab3:
                 if row_data[0].startswith('TOTAL'):
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
-        
+
         # 워크시트 3: Relevance Appraisal
         ws_relevance = wb.create_sheet("Relevance")
         ws_relevance['A1'] = "STEP 3: Relevance Appraisal"
         ws_relevance['A1'].font = title_font
-        
+
         # 표 헤더
         for col, header in enumerate(["Description", "Weight", "Score", "Remarks"], 1):
             cell = ws_relevance.cell(row=3, column=col, value=header)
             cell.font = header_font
             cell.fill = header_fill
             cell.border = border
-        
+
         # Relevance 데이터 파싱
         relevance_data = []
         in_relevance_table = False
-        
+
         for line in lines:
             if "RELEVANCE_TABLE_START" in line:
                 in_relevance_table = True
@@ -580,7 +726,7 @@ with tab3:
                 parts = [part.strip() for part in line.split('|')]
                 if len(parts) >= 4:
                     relevance_data.append(parts)
-        
+
         # 데이터 입력
         for row_idx, row_data in enumerate(relevance_data, 4):
             for col_idx, cell_data in enumerate(row_data[:4], 1):
@@ -589,23 +735,23 @@ with tab3:
                 if row_data[0].startswith('TOTAL'):
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
-        
+
         # 워크시트 4: Contribution Appraisal
         ws_contribution = wb.create_sheet("Contribution")
         ws_contribution['A1'] = "STEP 4: Contribution Appraisal"
         ws_contribution['A1'].font = title_font
-        
+
         # 표 헤더
         for col, header in enumerate(["Contribution Criteria", "Weight", "Score", "Remarks"], 1):
             cell = ws_contribution.cell(row=3, column=col, value=header)
             cell.font = header_font
             cell.fill = header_fill
             cell.border = border
-        
+
         # Contribution 데이터 파싱
         contribution_data = []
         in_contribution_table = False
-        
+
         for line in lines:
             if "CONTRIBUTION_TABLE_START" in line:
                 in_contribution_table = True
@@ -617,7 +763,7 @@ with tab3:
                 parts = [part.strip() for part in line.split('|')]
                 if len(parts) >= 4:
                     contribution_data.append(parts)
-        
+
         # 데이터 입력
         for row_idx, row_data in enumerate(contribution_data, 4):
             for col_idx, cell_data in enumerate(row_data[:4], 1):
@@ -626,23 +772,23 @@ with tab3:
                 if row_data[0].startswith('TOTAL'):
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
-        
+
         # 워크시트 5: Overall Assessment
         ws_overall = wb.create_sheet("Overall")
         ws_overall['A1'] = "STEP 5: Overall Assessment"
         ws_overall['A1'].font = title_font
-        
+
         # 표 헤더
         for col, header in enumerate(["Assessment Category", "Score", "Maximum", "Percentage"], 1):
             cell = ws_overall.cell(row=3, column=col, value=header)
             cell.font = header_font
             cell.fill = header_fill
             cell.border = border
-        
+
         # Overall 데이터 파싱
         overall_data = []
         in_overall_table = False
-        
+
         for line in lines:
             if "OVERALL_TABLE_START" in line:
                 in_overall_table = True
@@ -654,7 +800,7 @@ with tab3:
                 parts = [part.strip() for part in line.split('|')]
                 if len(parts) >= 4:
                     overall_data.append(parts)
-        
+
         # 데이터 입력
         for row_idx, row_data in enumerate(overall_data, 4):
             for col_idx, cell_data in enumerate(row_data[:4], 1):
@@ -663,18 +809,18 @@ with tab3:
                 if row_data[0].startswith('TOTAL'):
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
-        
+
         # 🔥 컬럼 너비 자동 조정 (병합 셀 오류 수정)
         for ws in wb.worksheets:
             # 각 컬럼의 최대 너비 계산
             for col_num in range(1, ws.max_column + 1):
                 max_length = 0
                 column_letter = get_column_letter(col_num)
-                
+
                 # 해당 컬럼의 모든 셀 확인
                 for row_num in range(1, ws.max_row + 1):
                     cell = ws.cell(row=row_num, column=col_num)
-                    
+
                     # 🔥 병합된 셀이 아닌 경우만 처리
                     if not hasattr(cell, 'coordinate') or cell.coordinate not in ws.merged_cells:
                         try:
@@ -682,22 +828,22 @@ with tab3:
                                 max_length = len(str(cell.value))
                         except:
                             pass
-                
+
                 # 너비 설정 (최소 10, 최대 50)
                 adjusted_width = min(max(max_length + 2, 10), 50)
                 ws.column_dimensions[column_letter].width = adjusted_width
-        
+
         return wb
-    
+
     st.markdown("### 📊 MEDDEV 2.7/1 Rev. 4 엑셀 분석")
-    
+
     # PDF 업로드
     uploaded_file = st.file_uploader("📎 PDF 논문 업로드", type="pdf")
-    
+
     if uploaded_file is not None:
         try:
             import pdfplumber
-            
+
             # PDF 텍스트 추출
             with pdfplumber.open(uploaded_file) as pdf:
                 pdf_text = ""
@@ -705,46 +851,48 @@ with tab3:
                     text = page.extract_text()
                     if text:
                         pdf_text += text + "\n"
-            
+
             st.success(f"✅ PDF 업로드 성공! ({len(pdf.pages)}페이지)")
-            
+
             # 텍스트 미리보기
             with st.expander("📖 텍스트 미리보기"):
                 st.text_area("PDF 내용 (처음 2000자)", 
                             pdf_text[:2000] + "..." if len(pdf_text) > 2000 else pdf_text, 
                             height=200)
+
+            # 분석 실행 버튼 - 선택된 팀의 Gemini API 키 사용
+            team_gemini_key = TEAM_CONFIGS[st.session_state.selected_team]['gemini_api_key']
             
-            # 분석 실행 버튼
             if st.button("📊 MEDDEV 엑셀 분석 실행", key="pdf_analysis", use_container_width=True):
-                if not st.session_state.get('gemini_api_key', ''):
-                    st.error("❌ AI 분석 탭에서 Gemini API 키를 먼저 입력하세요!")
+                if not team_gemini_key:
+                    st.error("❌ 사이드바에서 Gemini API 키를 먼저 입력하세요!")
                 else:
                     try:
                         # Gemini 설정
-                        genai.configure(api_key=st.session_state['gemini_api_key'])
-                        model = genai.GenerativeModel('gemini-2.5-flash')
-                        
+                        genai.configure(api_key=team_gemini_key)
+                        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+
                         # 텍스트 길이 제한
                         max_length = 50000
                         processed_text = pdf_text
                         if len(pdf_text) > max_length:
                             processed_text = pdf_text[:max_length] + "\n...(텍스트 길이 제한으로 일부 생략)"
                             st.warning(f"⚠️ 텍스트가 {max_length}자로 제한되어 분석됩니다")
-                        
+
                         # MEDDEV 표 형식 프롬프트
                         prompt = get_meddev_table_analysis_prompt(processed_text)
-                        
+
                         # 분석 실행
                         with st.spinner("📊 MEDDEV 엑셀 분석 중... (2-3분)"):
                             response = model.generate_content(prompt)
-                            
+
                             if response and response.text:
                                 st.success("✅ 분석 완료!")
-                                
+
                                 # 결과 표시
                                 st.markdown("### 📊 MEDDEV 2.7/1 Rev. 4 엑셀 분석")
                                 st.markdown(response.text)
-                                
+
                                 # 다운로드 파일 준비
                                 analysis_result = f"""MEDDEV 2.7/1 Rev. 4 엑셀 분석
 
@@ -760,10 +908,10 @@ with tab3:
 분석 도구: Gemini AI 기반 MEDDEV 분석 시스템
 생성 시간: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
-                                
+
                                 # 다운로드 버튼
                                 col1, col2 = st.columns(2)
-                                
+
                                 with col1:
                                     st.download_button(
                                         label="📥 마크다운 다운로드",
@@ -772,18 +920,18 @@ with tab3:
                                         mime="text/markdown",
                                         use_container_width=True
                                     )
-                                
+
                                 with col2:
                                     # 🔥 엑셀 다운로드 (병합 셀 오류 수정)
                                     try:
                                         # 엑셀 파일 생성
                                         wb = create_excel_meddev_analysis(response.text, pdf_text)
-                                        
+
                                         # 엑셀 파일 저장
                                         excel_buffer = io.BytesIO()
                                         wb.save(excel_buffer)
                                         excel_buffer.seek(0)
-                                        
+
                                         st.download_button(
                                             label="📊 엑셀 다운로드 (완벽한 표)",
                                             data=excel_buffer.getvalue(),
@@ -791,12 +939,12 @@ with tab3:
                                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                             use_container_width=True
                                         )
-                                        
+
                                         st.success("✅ 엑셀 파일 생성 성공!")
-                                        
+
                                     except Exception as excel_error:
                                         st.warning(f"⚠️ 엑셀 파일 생성 실패: {excel_error}")
-                                        
+
                                         # 실패 시 텍스트 파일 제공
                                         st.download_button(
                                             label="📄 텍스트 다운로드 (백업)",
@@ -807,15 +955,15 @@ with tab3:
                                         )
                             else:
                                 st.error("❌ Gemini 분석 응답을 받지 못했습니다")
-                    
+
                     except Exception as e:
                         st.error(f"❌ 분석 오류: {e}")
-        
+
         except ImportError:
             st.error("❌ pdfplumber가 설치되지 않았습니다. `pip install pdfplumber` 명령어를 실행하세요")
         except Exception as e:
             st.error(f"❌ PDF 처리 오류: {e}")
-    
+
     else:
         st.info("📄 PDF 파일을 업로드하면 MEDDEV 2.7/1 Rev. 4 엑셀 분석이 진행됩니다")
 
