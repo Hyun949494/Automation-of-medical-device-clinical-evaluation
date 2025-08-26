@@ -1,26 +1,40 @@
-# config.py 페이지설정
-import streamlit as st
+from rnd4 import TEAM_CONFIG as RND4_CONFIG
+from rnd35 import TEAM_CONFIG as RND35_CONFIG
 
-def load_team_config(team_name):
-    """팀 설정 로드"""
-    try:
-        if team_name == "RND4":
-            import rnd4
-            return rnd4.TEAM_CONFIG
-        elif team_name == "RND35":
-            import rnd35
-            return rnd35.TEAM_CONFIG
-        else:
-            return None
-    except ImportError:
-        st.error(f"{team_name} 설정 파일을 찾을 수 없습니다.")
-        return None
+# 🏗️ 전체 팀 설정 데이터
+TEAM_CONFIGS = {
+    "RND4": {
+        "name": "RND4 팀 - Pulmonary Valve",
+        **RND4_CONFIG
+    },
+    "RND35": {
+        "name": "RND35 팀 - 사용자 설정",
+        **RND35_CONFIG
+    },
+    "커스텀": {
+        "name": "커스텀 설정",
+        "P": "",
+        "I": "",
+        "C": "",
+        "O": "",
+        "email": "",
+        "api_key": "",
+        "product": "",
+        "gemini_api_key": ""
+    }
+}
 
-def setup_page():
-    """페이지 기본 설정"""
-    st.set_page_config(
-        page_title="🔬 임상 문헌 분석 도구",
-        page_icon="🔬",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
+# 검색 설정
+SEARCH_SETTINGS = {
+    "max_results_per_call": 200,
+    "default_results": 50,
+    "chunk_size": 50,
+    "api_delay": 1.0
+}
+
+# 날짜 필터 설정 - 커스텀 방식
+DATE_FILTER_OPTIONS = {
+    "custom_range_only": True,  # 사용자가 직접 입력하는 방식만 사용
+    "format_help": "YYYY/MM/DD-YYYY/MM/DD 형식으로 입력하세요",
+    "placeholder": "예: 2020/01/01-2024/12/31"
+}
