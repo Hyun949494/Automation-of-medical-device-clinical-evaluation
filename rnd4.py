@@ -1,4 +1,4 @@
-# RND4 팀 설정 - Pulmonary Valve 관련 연구
+# RND4 팀 설정 - Pulmonary Valve
 TEAM_CONFIG = {
     "P": '"pulmonary valve" OR "pulmonary valve atresia" OR "pulmonary valve regurgitation" OR "right ventricular outflow tract" OR "RVOT" OR "right ventricle to pulmonary artery" OR "dysfunctional RVOT" OR "tetralogy of fallot"',
     "I": '"transcatheter pulmonary valve" OR "percutaneous pulmonary valve" OR "percutaneous pulmonary valve implantation" OR "transcatheter pulmonary valve implantation" OR TPVI OR PPVI',
