@@ -1,42 +1,38 @@
-# document_utils.py
 import pandas as pd
-from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+import io
+from datetime import datetime
 
-def create_word_document(content, pdf_length):
-    """워드 문서 생성"""
-    doc = Document()
+def create_excel_download(df, filename_prefix="results"):
+    """DataFrame을 엑셀 파일로 변환하여 다운로드 가능한 형태로 반환"""
+    excel_bytes = io.BytesIO()
+    df.to_excel(excel_bytes, index=False, engine='openpyxl')
     
-    # 제목 추가
-    title = doc.add_heading('Literature Analysis Report', 0)
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{filename_prefix}_{timestamp}.xlsx"
     
-    # 분석 정보 추가
-    doc.add_paragraph(f"Analysis Date: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    doc.add_paragraph(f"Analysis Tool: Gemini AI-based Literature Analysis")
-    doc.add_paragraph(f"Original Paper Text Length: {pdf_length} characters")
+    return excel_bytes.getvalue(), filename
+
+def create_markdown_download(content, filename_prefix="analysis"):
+    """텍스트 내용을 마크다운 파일로 변환하여 다운로드 가능한 형태로 반환"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{filename_prefix}_{timestamp}.md"
     
-    # 구분선
-    doc.add_paragraph("─" * 50)
+    return content.encode('utf-8'), filename
+
+def format_search_results(papers_list):
+    """검색 결과를 보기 좋은 형태로 포맷팅"""
+    formatted_results = []
     
-    # 분석 내용 추가
-    paragraphs = content.split('\n')
-    for para in paragraphs:
-        para = para.strip()
-        if not para:
-            continue
-            
-        if para.startswith('##'):
-            level = min(para.count('#') - 1, 5)
-            text = para.lstrip('#').strip()
-            doc.add_heading(text, level)
-        elif para.startswith('**') and para.endswith('**'):
-            p = doc.add_paragraph()
-            run = p.add_run(para.strip('*'))
-            run.bold = True
-        elif para.startswith('- '):
-            doc.add_paragraph(para[2:], style='List Bullet')
-        else:
-            doc.add_paragraph(para)
+    for i, paper in enumerate(papers_list, 1):
+        formatted_paper = f"""
+**{i}. {paper.get('Title', 'No Title')}**
+- **저자**: {paper.get('Authors', 'No Authors')}
+- **저널**: {paper.get('Journal', 'No Journal')} ({paper.get('Year', 'No Year')})
+- **PMID**: [{paper.get('PMID', 'No PMID')}]({paper.get('URL', '#')})
+- **초록**: {paper.get('Abstract', 'No Abstract')[:200]}...
+
+---
+"""
+        formatted_results.append(formatted_paper)
     
-    return doc
+    return '\n'.join(formatted_results)
