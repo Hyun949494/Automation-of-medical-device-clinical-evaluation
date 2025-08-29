@@ -350,6 +350,8 @@ def render_meddev_tab():
             if st.button("📊 MEDDEV 분석 실행", key="pdf_analysis", use_container_width=True):
                 if not gemini_key_for_meddev:
                     st.error("❌ Gemini API 키를 입력하세요!")
+                elif not product_name:
+                    st.error("❌ 제품/기기명을 입력하세요!")
                 else:
                     execute_meddev_analysis(pdf_text, gemini_key_for_meddev)
 
@@ -414,6 +416,13 @@ def render_meddev_tab():
 
             st.success(f"✅ PDF 업로드 성공! ({len(pdf.pages)}페이지)")
 
+            # 제품/기기명 입력란 추가
+            product_name = st.text_input(
+                "🏷️ 제품/기기명",
+                value=st.session_state.get('team_product', ''),
+                help="분석할 제품이나 기술명을 입력하세요"
+            )
+
             # 텍스트 미리보기
             with st.expander("📖 텍스트 미리보기"):
                 st.text_area("PDF 내용 (처음 2000자)", 
@@ -452,7 +461,7 @@ def render_meddev_tab():
                                 st.warning(f"⚠️ 텍스트가 {max_length}자로 제한되어 분석됩니다")
 
                             # 분석 실행
-                            prompt = get_meddev_analysis_prompt(processed_text)
+                            prompt = get_meddev_analysis_prompt(processed_text, product_name)
                             
                             with st.spinner("📊 MEDDEV 분석 중... (2-3분 소요)"):
                                 response = model.generate_content(prompt)
@@ -638,18 +647,18 @@ def create_meddev_excel_file(data, pdf_text, processed_text, analysis_text):
     excel_bytes = io.BytesIO()
     
     with pd.ExcelWriter(excel_bytes, engine='openpyxl') as writer:
-        # 1. 요약 시트
-        summary_data = {
-            '항목': ['분석 날짜', '원본 텍스트 길이', '처리된 텍스트 길이', '분석 결과 길이'],
-            '내용': [
-                pd.Timestamp.now().strftime('%Y년 %m월 %d일 %H시 %M분'),
-                f"{len(pdf_text):,} 글자",
-                f"{len(processed_text):,} 글자",
-                f"{len(analysis_text):,} 글자"
-            ]
-        }
-        summary_df = pd.DataFrame(summary_data)
-        summary_df.to_excel(writer, sheet_name='요약', index=False)
+        # # 1. 요약 시트
+        # summary_data = {
+        #     '항목': ['분석 날짜', '원본 텍스트 길이', '처리된 텍스트 길이', '분석 결과 길이'],
+        #     '내용': [
+        #         pd.Timestamp.now().strftime('%Y년 %m월 %d일 %H시 %M분'),
+        #         f"{len(pdf_text):,} 글자",
+        #         f"{len(processed_text):,} 글자",
+        #         f"{len(analysis_text):,} 글자"
+        #     ]
+        # }
+        # summary_df = pd.DataFrame(summary_data)
+        # summary_df.to_excel(writer, sheet_name='요약', index=False)
         
         # 2-3. 논문/기기 정보 시트
         if data['paper_info']:
@@ -694,9 +703,9 @@ def create_meddev_excel_file(data, pdf_text, processed_text, analysis_text):
             overall_df.to_excel(writer, sheet_name='STEP5_Overall', index=False)
 
         
-        # 9. 전체 분석 결과
-        full_result_df = pd.DataFrame({'전체 분석 결과': [analysis_text]})
-        full_result_df.to_excel(writer, sheet_name='전체결과', index=False)
+        # # 9. 전체 분석 결과
+        # full_result_df = pd.DataFrame({'전체 분석 결과': [analysis_text]})
+        # full_result_df.to_excel(writer, sheet_name='전체결과', index=False)
         
         # 10. 파싱 실패시 원본 저장
         if 'raw_text' in data:
