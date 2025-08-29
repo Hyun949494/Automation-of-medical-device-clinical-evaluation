@@ -68,10 +68,16 @@ def analyze_with_gemini(df, gemini_api_key, product_name, user_prompt):
         use_container_width=True
     )
 
-def get_meddev_analysis_prompt(text):
+def get_meddev_analysis_prompt(text, product_name):
     """MEDDEV 2.7/1 Rev. 4 분석 프롬프트"""
     return f"""
-다음 의료기기 논문을 MEDDEV 2.7/1 Rev. 4 기준에 따라 분석하고, 엑셀 표 형식으로 결과를 제공해주세요.
+아래는 의료기기 임상 논문의 본문입니다.
+
+분석 대상 기기명: {product_name}
+
+1. 논문 전체에 대한 평가(방법론, 일반적 관련성, 기여도, 종합평가)는 논문 자체 기준으로 MEDDEV 2.7/1 Rev.4에 따라 분석하세요.
+2. 단, 'STEP 3: Relevance Suitability' 표만 '{product_name}'(우리 기기)와의 적합성/관련성 기준으로 분석하세요.
+**All Remarks, Comments, and explanations in the tables must be written in English.**
 
 논문 내용:
 {text[:10000]}
