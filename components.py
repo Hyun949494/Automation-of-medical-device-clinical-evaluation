@@ -123,14 +123,6 @@ def render_search_filters():
     with col2:
         other_medline = st.checkbox("MEDLINE", value=False)
 
-    # Additional Filters
-    st.markdown("#### 🔬 Additional Filters")
-    col1, col2 = st.columns(2)
-    with col1:
-        use_human_filter = st.checkbox("👥 인간 대상 연구만", value=True)
-        use_english_filter = st.checkbox("🔤 영어 논문만", value=False)
-    with col2:
-        use_recent_filter = st.checkbox("📅 최근 논문 우선", value=False)
 
     return {
         'period': period,
@@ -165,11 +157,7 @@ def render_search_filters():
             'exclude_preprints': other_exclude_preprints,
             'medline': other_medline,
         },
-        'additional_filters': {
-            'human': use_human_filter,
-            'english': use_english_filter,
-            'recent': use_recent_filter
-        }
+
     }
 
 def execute_pubmed_search(P, I, C, O, use_P, use_I, use_C, use_O, 
