@@ -48,13 +48,12 @@ def render_pubmed_tab():
                              email, api_key, filter_options)
 
 def render_search_filters():
-    """검색 필터 UI 렌더링 - 검색 기간 추가"""
+    """검색 필터 UI 렌더링 - 검색 기간 및 PubMed 주요 필터 추가"""
     st.markdown("### 🔍 검색 필터")
     
-    # Publication Date 필터 (검색 옵션에서 이동)
+    # Publication Date 필터
     st.markdown("#### 📅 Publication Date")
     use_date_filter = st.checkbox("날짜 필터 사용", value=False)
-    
     period = ""
     if use_date_filter:
         period = st.text_input(
@@ -90,6 +89,40 @@ def render_search_filters():
         filter_review = st.checkbox("Review", value=True)
         filter_systematic_review = st.checkbox("Systematic Review", value=True)
     
+    # Species 필터
+    st.markdown("#### 🧬 Species")
+    col1, col2 = st.columns(2)
+    with col1:
+        species_humans = st.checkbox("Humans", value=True)
+    with col2:
+        species_other_animals = st.checkbox("Other Animals", value=False)
+
+    # Sex 필터
+    st.markdown("#### ⚧️ Sex")
+    col1, col2 = st.columns(2)
+    with col1:
+        sex_female = st.checkbox("Female", value=False)
+    with col2:
+        sex_male = st.checkbox("Male", value=False)
+
+    # Age 필터
+    st.markdown("#### 🎂 Age")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        age_child = st.checkbox("Child: birth-18 years", value=False)
+    with col2:
+        age_adult = st.checkbox("Adult: 19+ years", value=False)
+    with col3:
+        age_aged = st.checkbox("Aged: 65+ years", value=False)
+
+    # Other 필터
+    st.markdown("#### 🗂️ Other")
+    col1, col2 = st.columns(2)
+    with col1:
+        other_exclude_preprints = st.checkbox("Exclude preprints", value=False)
+    with col2:
+        other_medline = st.checkbox("MEDLINE", value=False)
+
     # Additional Filters
     st.markdown("#### 🔬 Additional Filters")
     col1, col2 = st.columns(2)
@@ -100,7 +133,7 @@ def render_search_filters():
         use_recent_filter = st.checkbox("📅 최근 논문 우선", value=False)
 
     return {
-        'period': period,  # 검색 기간 추가
+        'period': period,
         'text_filters': {
             'abstract': filter_abstract,
             'free_full_text': filter_free_full_text,
@@ -114,12 +147,29 @@ def render_search_filters():
             'review': filter_review,
             'systematic_review': filter_systematic_review
         },
+        'associated_data': filter_associated_data,
+        'species': {
+            'humans': species_humans,
+            'other_animals': species_other_animals,
+        },
+        'sex': {
+            'female': sex_female,
+            'male': sex_male,
+        },
+        'age': {
+            'child': age_child,
+            'adult': age_adult,
+            'aged': age_aged,
+        },
+        'other': {
+            'exclude_preprints': other_exclude_preprints,
+            'medline': other_medline,
+        },
         'additional_filters': {
             'human': use_human_filter,
             'english': use_english_filter,
             'recent': use_recent_filter
-        },
-        'associated_data': filter_associated_data
+        }
     }
 
 def execute_pubmed_search(P, I, C, O, use_P, use_I, use_C, use_O, 
