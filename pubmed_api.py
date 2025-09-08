@@ -182,48 +182,69 @@ def build_query(components):
     return " AND ".join(parts)
 
 def build_filters(filter_options):
-    """필터 옵션들을 PubMed 쿼리 형식으로 변환"""
+    """필터 옵션들을 PubMed 쿼리 형식으로 변환 (PubMed 웹과 최대한 유사하게)"""
     filters = []
-    
+
     # Text Availability 필터
-    text_filters = []
     if filter_options.get('text_filters', {}).get('abstract'):
-        text_filters.append('hasabstract')
+        filters.append('hasabstract[Filter]')
     if filter_options.get('text_filters', {}).get('free_full_text'):
-        text_filters.append('free full text[sb]')
+        filters.append('fft[Filter]')
     if filter_options.get('text_filters', {}).get('full_text'):
-        text_filters.append('full text[sb]')
-    
-    if text_filters:
-        filters.append(f"({' OR '.join(text_filters)})")
-    
+        filters.append('full text[Filter]')
+
     # Article Type 필터
     article_type_filters = []
     if filter_options.get('article_type_filters', {}).get('books_docs'):
-        article_type_filters.append('books and documents[pt]')
+        article_type_filters.append('booksdocs[Filter]')
     if filter_options.get('article_type_filters', {}).get('clinical_trial'):
-        article_type_filters.append('clinical trial[pt]')
+        article_type_filters.append('clinicaltrial[Filter]')
     if filter_options.get('article_type_filters', {}).get('meta_analysis'):
-        article_type_filters.append('meta-analysis[pt]')
+        article_type_filters.append('meta-analysis[Filter]')
     if filter_options.get('article_type_filters', {}).get('rct'):
-        article_type_filters.append('randomized controlled trial[pt]')
+        article_type_filters.append('randomizedcontrolledtrial[Filter]')
     if filter_options.get('article_type_filters', {}).get('review'):
-        article_type_filters.append('review[pt]')
+        article_type_filters.append('review[Filter]')
     if filter_options.get('article_type_filters', {}).get('systematic_review'):
-        article_type_filters.append('systematic review[pt]')
-    
+        article_type_filters.append('systematicreview[Filter]')
+
     if article_type_filters:
         filters.append(f"({' OR '.join(article_type_filters)})")
-    
+
     # Article Attribute 필터
     if filter_options.get('associated_data'):
-        filters.append('associated data[sb]')
-    
+        filters.append('data[Filter]')
+
     # Additional 필터
     if filter_options.get('additional_filters', {}).get('human'):
-        filters.append('humans[mh]')
-    
+        filters.append('humans[Filter]')
     if filter_options.get('additional_filters', {}).get('english'):
-        filters.append('english[la]')
-    
+        filters.append('english[Filter]')
+
+    # Species
+    if filter_options.get('species', {}).get('humans'):
+        filters.append('humans[Filter]')
+    if filter_options.get('species', {}).get('other_animals'):
+        filters.append('animals[Filter]')
+
+    # Sex
+    if filter_options.get('sex', {}).get('female'):
+        filters.append('female[Filter]')
+    if filter_options.get('sex', {}).get('male'):
+        filters.append('male[Filter]')
+
+    # Age
+    if filter_options.get('age', {}).get('child'):
+        filters.append('child[Filter]')
+    if filter_options.get('age', {}).get('adult'):
+        filters.append('adult[Filter]')
+    if filter_options.get('age', {}).get('aged'):
+        filters.append('aged[Filter]')
+
+    # Other
+    if filter_options.get('other', {}).get('exclude_preprints'):
+        filters.append('NOT preprints[Filter]')
+    if filter_options.get('other', {}).get('medline'):
+        filters.append('medline[Filter]')        
+
     return filters
